@@ -7,11 +7,10 @@ class UIManager {
         this.connectionStatus = document.getElementById('connection-status');
         this.reconnectCount = document.getElementById('reconnect-count');
         this.statusIndicators = {
-            selectionChanges: document.getElementById('status-selection'),
-            cursorPosition: document.getElementById('status-cursor'),
-            documentChanges: document.getElementById('status-document'),
-            fileOperations: document.getElementById('status-file'),
-            autoMonitoring: document.getElementById('status-auto')
+            selectionChanges: document.getElementById('selection-status'),
+            cursorPosition: document.getElementById('cursor-status'),
+            documentChanges: document.getElementById('document-status'),
+            fileOperations: document.getElementById('file-status')
         };
     }
 
@@ -44,15 +43,24 @@ class UIManager {
     updateStatusIndicator(indicator, active) {
         if (this.statusIndicators[indicator]) {
             const statusElement = this.statusIndicators[indicator];
-            const statusText = statusElement.querySelector('.status-text');
-            const statusDot = statusElement.querySelector('.status-dot');
             
             if (active) {
-                statusText.textContent = 'Active';
-                statusDot.style.backgroundColor = '#10b981'; // 绿色
+                statusElement.textContent = '✅';
+                statusElement.classList.add('active');
+                statusElement.classList.remove('inactive');
+                
+                // 2秒后恢复为暂停状态
+                setTimeout(() => {
+                    if (this.statusIndicators[indicator]) {
+                        statusElement.textContent = '⏸️';
+                        statusElement.classList.remove('active');
+                        statusElement.classList.add('inactive');
+                    }
+                }, 2000);
             } else {
-                statusText.textContent = 'Inactive';
-                statusDot.style.backgroundColor = '#ef4444'; // 红色
+                statusElement.textContent = '⏸️';
+                statusElement.classList.add('inactive');
+                statusElement.classList.remove('active');
             }
         }
     }
@@ -62,11 +70,14 @@ class UIManager {
      * @param {Object} status 监听状态对象
      */
     updateMonitoringStatus(status) {
+        // 对于临时状态，不需要特殊处理
+        // 使用表情符号和动画效果
+        
+        // 更新各个状态指示器
         this.updateStatusIndicator('selectionChanges', status.selectionChanges);
         this.updateStatusIndicator('cursorPosition', status.cursorPosition);
         this.updateStatusIndicator('documentChanges', status.documentChanges);
         this.updateStatusIndicator('fileOperations', status.fileOperations);
-        this.updateStatusIndicator('autoMonitoring', status.autoMonitoring);
     }
 
     /**
@@ -294,23 +305,28 @@ class UIManager {
      */
     updateMonitoringStatusByType(type) {
         const statusMap = {
-            'selectionChanged': { indicator: 'selectionChanges', active: true },
-            'selectionCleared': { indicator: 'selectionChanges', active: false },
-            'cursorPositionChanged': { indicator: 'cursorPosition', active: true },
-            'documentChanged': { indicator: 'documentChanges', active: true },
-            'fileSaved': { indicator: 'fileOperations', active: true },
-            'fileOpened': { indicator: 'fileOperations', active: true },
-            'activeEditorChanged': { indicator: 'fileOperations', active: true }
+            'selectionChanged': { indicator: 'selectionChanges', emoji: '✅' },
+            'selectionCleared': { indicator: 'selectionChanges', emoji: '⏸️' },
+            'cursorPositionChanged': { indicator: 'cursorPosition', emoji: '✅' },
+            'documentChanged': { indicator: 'documentChanges', emoji: '✅' },
+            'fileSaved': { indicator: 'fileOperations', emoji: '💾' },
+            'fileOpened': { indicator: 'fileOperations', emoji: '📂' },
+            'activeEditorChanged': { indicator: 'fileOperations', emoji: '📄' }
         };
         
         const status = statusMap[type];
         if (status) {
-            this.updateStatusIndicator(status.indicator, status.active);
-            
-            // 对于事件触发的状态，2秒后恢复
-            if (status.active) {
+            const statusElement = this.statusIndicators[status.indicator];
+            if (statusElement) {
+                statusElement.textContent = status.emoji;
+                statusElement.classList.add('active');
+                
+                // 2秒后恢复为暂停状态
                 setTimeout(() => {
-                    this.updateStatusIndicator(status.indicator, false);
+                    if (this.statusIndicators[status.indicator]) {
+                        statusElement.textContent = '⏸️';
+                        statusElement.classList.remove('active');
+                    }
                 }, 2000);
             }
         }

@@ -9,8 +9,7 @@ class EventHandlers {
             selectionChanges: false,
             cursorPosition: false,
             documentChanges: false,
-            fileOperations: false,
-            autoMonitoring: false
+            fileOperations: false
         };
     }
 
@@ -84,10 +83,6 @@ class EventHandlers {
      */
     handleSpecialMessages(message) {
         switch (message.type) {
-            case 'welcome':
-                this.monitoringStatus.autoMonitoring = message.data.monitoringEnabled;
-                break;
-                
             case 'selectionChanged':
                 this.monitoringStatus.selectionChanges = true;
                 break;
@@ -104,14 +99,6 @@ class EventHandlers {
             case 'fileOpened':
                 this.monitoringStatus.fileOperations = true;
                 break;
-                
-            case 'monitoringStatusChanged':
-                this.monitoringStatus.autoMonitoring = message.data.enabled;
-                break;
-                
-            case 'initialState':
-                this.monitoringStatus.autoMonitoring = message.data.monitoringEnabled;
-                break;
         }
         
         // 更新UI中的监控状态
@@ -126,8 +113,7 @@ class EventHandlers {
             selectionChanges: false,
             cursorPosition: false,
             documentChanges: false,
-            fileOperations: false,
-            autoMonitoring: false
+            fileOperations: false
         };
         
         this.uiManager.updateMonitoringStatus(this.monitoringStatus);

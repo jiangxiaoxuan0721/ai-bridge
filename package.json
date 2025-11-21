@@ -1,0 +1,147 @@
+{
+  "name": "ai-bridge",
+  "displayName": "ai-bridge",
+  "description": "by simbot teams, ai-bridge is a vscode extension that provides a bridge to ai-bridge, ai-bridge is a powerful ai assistant that helps you with code generation, code completion, code explanation, and more.",
+  "version": "0.0.4",
+  "publisher": "simbot-wuxi",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/ai-bridge"
+  },
+  "engines": {
+    "vscode": "^1.98.1"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ai-bridge.getSelectedText",
+        "title": "AI Bridge: Get Selected Text"
+      },
+      {
+        "command": "ai-bridge.getFileContent",
+        "title": "AI Bridge: Get File Content"
+      },
+      {
+        "command": "ai-bridge.sendMessage",
+        "title": "AI Bridge: Send Custom Message"
+      },
+      {
+        "command": "ai-bridge.toggleAutoMonitoring",
+        "title": "AI Bridge: Toggle Auto Monitoring"
+      },
+      {
+        "command": "ai-bridge.sendSelectionToBridge",
+        "title": "Send Selection to AI Bridge"
+      },
+      {
+        "command": "ai-bridge.sendFileToBridge",
+        "title": "Send File to AI Bridge"
+      },
+      {
+        "command": "ai-bridge.showBridgeStatus",
+        "title": "AI Bridge: Show Status"
+      },
+      {
+        "command": "ai-bridge.showServerInfo",
+        "title": "AI Bridge: Show Server Info"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "ai-bridge.sendSelectionToBridge",
+          "when": "editorHasSelection",
+          "group": "aiBridge@1"
+        },
+        {
+          "command": "ai-bridge.sendFileToBridge",
+          "group": "aiBridge@2"
+        },
+        {
+          "command": "ai-bridge.showBridgeStatus",
+          "group": "aiBridge@3"
+        },
+        {
+          "command": "ai-bridge.toggleAutoMonitoring",
+          "group": "aiBridge@4"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "ai-bridge.sendFileToBridge",
+          "when": "resourceLangId",
+          "group": "aiBridge@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "AI Bridge",
+      "properties": {
+        "aiBridge.autoMonitoring.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable automatic monitoring of editor events"
+        },
+        "aiBridge.autoMonitoring.selectionChanges": {
+          "type": "boolean",
+          "default": true,
+          "description": "Monitor text selection changes"
+        },
+        "aiBridge.autoMonitoring.debounceDelay": {
+          "type": "number",
+          "default": 300,
+          "description": "Debounce delay in milliseconds for event monitoring"
+        },
+        "aiBridge.autoMonitoring.cursorPosition": {
+          "type": "boolean",
+          "default": true,
+          "description": "Monitor cursor position changes"
+        },
+        "aiBridge.autoMonitoring.documentChanges": {
+          "type": "boolean",
+          "default": true,
+          "description": "Monitor document content changes"
+        },
+        "aiBridge.autoMonitoring.fileOperations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Monitor file open/save operations"
+        },
+        "aiBridge.server.port": {
+          "type": "number",
+          "default": 0,
+          "description": "WebSocket server port (0 = auto-detect VSCode port, >0 = use specific port)"
+        },
+        "aiBridge.server.host": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "WebSocket server host address"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "vscode-test"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.98.1",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@types/ws": "^8.5.13",
+    "eslint": "^9.39.1",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}

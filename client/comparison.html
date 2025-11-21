@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Bridge Comparison</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .client-panel {
+            flex: 1;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .panel-header {
+            padding: 15px 20px;
+            background: #333;
+            color: white;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-content {
+            height: 600px;
+            border: 1px solid #ddd;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #f87171;
+        }
+        .status-dot.connected {
+            background: #4ade80;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .instructions {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>AI Bridge Client Comparison</h1>
+    <div class="instructions">
+        <p>左侧: test-client.html (原始实现) | 右侧: client/index.html (模块化实现)</p>
+        <p>这两个客户端同时连接到同一个WebSocket服务器(localhost:3011)，便于对比功能和消息处理。</p>
+    </div>
+    
+    <div class="container">
+        <div class="client-panel">
+            <div class="panel-header">
+                <span>原始实现 (test-client.html)</span>
+                <div class="connection-status">
+                    <span>连接状态</span>
+                    <div id="status1" class="status-dot"></div>
+                </div>
+            </div>
+            <div class="panel-content">
+                <iframe src="../test-client.html" id="client1"></iframe>
+            </div>
+        </div>
+        
+        <div class="client-panel">
+            <div class="panel-header">
+                <span>模块化实现 (client/index.html)</span>
+                <div class="connection-status">
+                    <span>连接状态</span>
+                    <div id="status2" class="status-dot"></div>
+                </div>
+            </div>
+            <div class="panel-content">
+                <iframe src="./index.html" id="client2"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 简单的状态检测
+        function detectConnectionStatus() {
+            // 在实际应用中，可以通过postMessage与iframe通信来获取连接状态
+            // 这里只是示例
+            setTimeout(() => {
+                document.getElementById('status1').classList.add('connected');
+                document.getElementById('status2').classList.add('connected');
+            }, 3000);
+        }
+        
+        detectConnectionStatus();
+    </script>
+</body>
+</html>

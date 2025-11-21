@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Bridge WebSocket Client</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div class="main-container">
+        <header class="header">
+            <h1>AI Bridge WebSocket Client</h1>
+            <p>Real-time communication with VS Code Extension</p>
+        </header>
+
+        <div class="container">
+            <div class="status-bar">
+                <div class="connection-status-container">
+                    <span class="connection-label">Status:</span>
+                    <span id="connection-status" class="connection-status">Disconnected</span>
+                    <span id="reconnect-count"></span>
+                </div>
+                <button id="connect-btn" class="btn btn-connect">Connect</button>
+            </div>
+        </div>
+
+        <div class="container">
+            <h2>Current Editor State</h2>
+            <div class="current-state">
+                <div class="state-grid">
+                    <div class="state-item">
+                        <span class="state-label">File:</span>
+                        <span class="state-value" id="currentFile">N/A</span>
+                    </div>
+                    <div class="state-item">
+                        <span class="state-label">Language:</span>
+                        <span class="state-value" id="currentLanguage">N/A</span>
+                    </div>
+                    <div class="state-item">
+                        <span class="state-label">Cursor:</span>
+                        <span class="state-value" id="currentCursor">N/A</span>
+                    </div>
+                    <div class="state-item">
+                        <span class="state-label">Selection:</span>
+                        <span class="state-value" id="currentSelection">None</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <h2>Monitoring Status</h2>
+            <div class="status-grid">
+                <div id="status-selection" class="status-item">
+                    <div class="status-dot"></div>
+                    <span class="status-text">Selection Changes</span>
+                </div>
+                <div id="status-cursor" class="status-item">
+                    <div class="status-dot"></div>
+                    <span class="status-text">Cursor Position</span>
+                </div>
+                <div id="status-document" class="status-item">
+                    <div class="status-dot"></div>
+                    <span class="status-text">Document Changes</span>
+                </div>
+                <div id="status-file" class="status-item">
+                    <div class="status-dot"></div>
+                    <span class="status-text">File Operations</span>
+                </div>
+                <div id="status-auto" class="status-item">
+                    <div class="status-dot"></div>
+                    <span class="status-text">Auto Monitoring</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <h2>Manual Commands</h2>
+            <div class="command-section">
+                <div class="command-input-group">
+                    <input type="text" id="file-name" placeholder="Enter file name (e.g., package.json)" class="text-input">
+                    <button id="request-file-btn" class="btn">Request File</button>
+                </div>
+                
+                <div class="command-input-group">
+                    <input type="text" id="command-input" placeholder="Enter VS Code command (e.g., workbench.action.showCommands)" class="text-input">
+                    <button id="execute-command-btn" class="btn">Execute Command</button>
+                </div>
+                
+                <div class="command-input-group">
+                    <input type="text" id="custom-message" placeholder="Enter custom message" class="text-input">
+                    <button id="send-custom-btn" class="btn">Send Message</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="messages-header">
+                <h2>Messages</h2>
+                <button id="clear-messages-btn" class="btn btn-clear">Clear Messages</button>
+            </div>
+            <div id="messages" class="messages-container">
+                <!-- Messages will appear here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 通知容器 -->
+    <div id="notifications" class="notifications-container"></div>
+
+    <!-- 加载模块 -->
+    <script src="./modules/websocket-manager.js"></script>
+    <script src="./modules/ui-manager.js"></script>
+    <script src="./modules/event-handlers.js"></script>
+    <script src="./modules/app.js"></script>
+
+    <!-- 启动应用 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = new App();
+            app.init();
+            
+            // 全局错误处理
+            window.addEventListener('error', (event) => {
+                console.error('Global error:', event.error);
+            });
+            
+            // 页面卸载时清理资源
+            window.addEventListener('beforeunload', () => {
+                app.destroy();
+            });
+        });
+    </script>
+</body>
+</html>

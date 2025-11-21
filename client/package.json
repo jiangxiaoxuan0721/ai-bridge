@@ -1,0 +1,19 @@
+{
+  "name": "ai-bridge-client",
+  "version": "1.0.0",
+  "description": "WebSocket client for AI Bridge VS Code extension",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve -s . -l 8080"
+  },
+  "keywords": [
+    "websocket",
+    "vscode",
+    "client"
+  ],
+  "author": "AI Bridge Team",
+  "license": "MIT",
+  "devDependencies": {
+    "serve": "^14.2.1"
+  }
+}

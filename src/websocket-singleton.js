@@ -28,6 +28,12 @@ let clientHeartbeatInterval = null; // 客户端心跳发送间隔
 let lastPongTime = null; // 最后一次收到pong的时间
 let heartbeatTimeoutId = null; // 心跳超时检测ID
 
+// 自动重启管理
+let autoRestartEnabled = true; // 是否启用自动重启
+let restartAttempts = 0; // 重启尝试次数
+const MAX_RESTART_ATTEMPTS = 5; // 最大重启尝试次数
+let restartDelay = 2000; // 重启延迟（毫秒）
+
 /**
  * 设置监听状态
  * @param {boolean} enabled 监听是否启用
@@ -83,6 +89,8 @@ async function connectToSingleton(context) {
             
             ws.on('open', () => {
                 console.log(`Instance ${process.pid} connected to existing AI Bridge singleton server`);
+                
+
                 
                 // 保存当前客户端连接
                 currentClientConnection = ws;
@@ -179,24 +187,24 @@ async function connectToSingleton(context) {
                     // 重置连接状态
                     isSingletonRunning = false;
                     
-                    // 尝试重新连接或成为新的服务器
-                    setTimeout(() => {
-                        if (isSingletonRunning) {
-                            // 首先尝试重新连接
-                            connectToSingleton(context).catch(() => {
-                                // 如果重新连接失败，尝试成为新的单例
-                                becomeSingleton(context).then(success => {
-                                    if (success) {
-                                        // 成功成为服务器后，启用自动监听
-                                        const { enableMonitoring } = require('./event-monitoring');
-                                        enableMonitoring(context, broadcastToAllClients);
-                                    }
-                                }).catch(() => {
-                                    console.error('Failed to reconnect or become singleton');
+                    // 尝试成为新的服务器或重新连接
+                    setTimeout(async () => {
+                        if (!isSingletonRunning) {
+                            // 首先尝试成为新的服务器，因为原服务器已关闭
+                            const becameServer = await becomeSingleton(context);
+                            
+                            if (becameServer) {
+                                // 成功成为服务器后，启用自动监听
+                                const { enableMonitoring } = require('./event-monitoring');
+                                enableMonitoring(context, broadcastToAllClients);
+                            } else {
+                                // 如果无法成为服务器，尝试重新连接
+                                connectToSingleton(context).catch(() => {
+                                    console.error('Failed to become server or reconnect');
                                 });
-                            });
+                            }
                         }
-                    }, 2000);
+                    }, 1000);
                 });
                 
                 ws.on('error', (error) => {
@@ -390,7 +398,7 @@ async function becomeSingleton(context) {
                     console.log('No clients connected, starting shutdown countdown');
                     serverShutdownTimer = setTimeout(() => {
                         console.log('Shutting down server due to inactivity');
-                        stopSingletonServer();
+                        stopSingletonServer(false, null);
                     }, SHUTDOWN_DELAY);
                 }
             });
@@ -404,7 +412,7 @@ async function becomeSingleton(context) {
                     console.log('No clients connected, starting shutdown countdown');
                     serverShutdownTimer = setTimeout(() => {
                         console.log('Shutting down server due to inactivity');
-                        stopSingletonServer();
+                        stopSingletonServer(false, null);
                     }, SHUTDOWN_DELAY);
                 }
             });
@@ -492,7 +500,7 @@ function startServerLifecycleManagement() {
             console.log('No active clients, starting shutdown countdown');
             serverShutdownTimer = setTimeout(() => {
                 console.log('Shutting down server due to inactivity');
-                stopSingletonServer();
+                stopSingletonServer(false, null);
             }, SHUTDOWN_DELAY);
         }
     }, HEARTBEAT_INTERVAL);
@@ -567,6 +575,8 @@ function startClientHeartbeat(ws) {
             if (!heartbeatTimeoutId) {
                 checkHeartbeatTimeout();
             }
+            
+
         } else {
             // 连接已关闭，停止心跳
             clearInterval(clientHeartbeatInterval);
@@ -579,10 +589,14 @@ function startClientHeartbeat(ws) {
     }, HEARTBEAT_INTERVAL);
 }
 
+
+
 /**
  * 停止单例服务器
+ * @param {boolean} isManualStop 是否是手动停止
+ * @param {vscode.ExtensionContext} context 扩展上下文
  */
-function stopSingletonServer() {
+function stopSingletonServer(isManualStop = false, context = null) {
     if (!isSingletonRunning) {
         return;
     }
@@ -604,6 +618,12 @@ function stopSingletonServer() {
     if (singletonServer) {
         singletonServer.close(() => {
             console.log('Singleton server closed');
+            
+            // 如果不是手动停止且启用了自动重启，尝试重启服务器
+            if (!isManualStop && autoRestartEnabled && context) {
+                console.log('Server stopped unexpectedly, attempting auto-restart...');
+                scheduleAutoRestart(context);
+            }
         });
         singletonServer = null;
     }
@@ -611,6 +631,77 @@ function stopSingletonServer() {
     allClients.clear();
     monitoringStates.clear();
     currentEditorState = null;
+}
+
+/**
+ * 安排自动重启服务器
+ * @param {vscode.ExtensionContext} context 扩展上下文
+ */
+function scheduleAutoRestart(context) {
+    if (restartAttempts >= MAX_RESTART_ATTEMPTS) {
+        console.error(`Failed to restart server after ${MAX_RESTART_ATTEMPTS} attempts`);
+        vscode.window.showErrorMessage(
+            `AI Bridge server failed to restart after ${MAX_RESTART_ATTEMPTS} attempts. Please restart manually.`,
+            'Restart Manually'
+        ).then(selection => {
+            if (selection === 'Restart Manually') {
+                vscode.commands.executeCommand('ai-bridge.startServer');
+            }
+        });
+        return;
+    }
+    
+    // 增加重启延迟，避免频繁重启
+    const delay = restartDelay * Math.pow(2, restartAttempts); // 指数退避
+    console.log(`Scheduling auto-restart attempt ${restartAttempts + 1}/${MAX_RESTART_ATTEMPTS} in ${delay}ms`);
+    
+    setTimeout(() => {
+        restartAttempts++;
+        becomeSingleton(context).then(success => {
+            if (success) {
+                console.log('Server auto-restarted successfully');
+                restartAttempts = 0; // 重置计数器
+                
+                // 启用自动监听
+                const { enableMonitoring } = require('./event-monitoring');
+                enableMonitoring(context, broadcastToAllClients);
+                
+                vscode.window.showInformationMessage(
+                    'AI Bridge server has been automatically restarted',
+                    'Show Status'
+                ).then(selection => {
+                    if (selection === 'Show Status') {
+                        vscode.commands.executeCommand('ai-bridge.showBridgeStatus');
+                    }
+                });
+            } else {
+                console.log(`Auto-restart attempt ${restartAttempts} failed, trying again...`);
+                scheduleAutoRestart(context);
+            }
+        }).catch(error => {
+            console.error('Error during auto-restart:', error);
+            scheduleAutoRestart(context);
+        });
+    }, delay);
+}
+
+/**
+ * 启用/禁用自动重启
+ * @param {boolean} enabled 是否启用
+ */
+function setAutoRestartEnabled(enabled) {
+    autoRestartEnabled = enabled;
+    if (!enabled) {
+        restartAttempts = 0; // 重置计数器
+    }
+}
+
+/**
+ * 获取自动重启状态
+ * @returns {boolean} 是否启用自动重启
+ */
+function isAutoRestartEnabled() {
+    return autoRestartEnabled;
 }
 
 // 存储当前WebSocket连接，用于客户端发送消息
@@ -710,5 +801,8 @@ module.exports = {
     getClientCount,
     isServerRunning,
     sendInitialState,
-    setMonitoringState
+    setMonitoringState,
+    becomeSingleton,
+    setAutoRestartEnabled,
+    isAutoRestartEnabled
 };

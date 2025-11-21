@@ -1,5 +1,7 @@
 const vscode = require('vscode');
 const { getLanguageId, readDirectory, readFileContent } = require('./utils');
+const { isServerRunning, getClientCount, becomeSingleton, setAutoRestartEnabled, isAutoRestartEnabled } = require('./websocket-singleton');
+const { enableMonitoring } = require('./event-monitoring');
 
 /**
  * 注册所有命令
@@ -185,6 +187,47 @@ function registerCommands(context, broadcastToAllClients) {
         vscode.commands.executeCommand('ai-bridge.internal.showStatus');
     });
 
+    // 启动WebSocket服务器命令
+    const startServerCommand = vscode.commands.registerCommand('ai-bridge.startServer', function () {
+        if (isServerRunning()) {
+            vscode.window.showInformationMessage(`AI Bridge server is already running on port 3011 with ${getClientCount()} client(s) connected.`);
+            return;
+        }
+
+        vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: "Starting AI Bridge Server",
+            cancellable: false
+        }, async (progress) => {
+            progress.report({ increment: 0, message: "Initializing server..." });
+            
+            try {
+                const success = await becomeSingleton(context);
+                
+                if (success) {
+                    progress.report({ increment: 100, message: "Server started successfully!" });
+                    
+                    // 启用自动监听
+                    enableMonitoring(context, broadcastToAllClients);
+                    
+                    vscode.window.showInformationMessage(
+                        `AI Bridge server started successfully on port 3011`,
+                        'Show Status'
+                    ).then(selection => {
+                        if (selection === 'Show Status') {
+                            vscode.commands.executeCommand('ai-bridge.showBridgeStatus');
+                        }
+                    });
+                } else {
+                    vscode.window.showErrorMessage('Failed to start AI Bridge server. Port 3011 may be in use.');
+                }
+            } catch (error) {
+                console.error('Error starting AI Bridge server:', error);
+                vscode.window.showErrorMessage(`Failed to start AI Bridge server: ${error.message}`);
+            }
+        });
+    });
+
     // 将所有命令添加到上下文中
     context.subscriptions.push(
         getSelectedTextCommand,
@@ -192,8 +235,24 @@ function registerCommands(context, broadcastToAllClients) {
         sendMessageCommand,
         sendSelectionToBridgeCommand,
         sendFileToBridgeCommand,
-        showBridgeStatusCommand
+        showBridgeStatusCommand,
+        startServerCommand
     );
+
+    // 切换自动重启命令
+    const toggleAutoRestartCommand = vscode.commands.registerCommand('ai-bridge.toggleAutoRestart', function () {
+        const currentState = isAutoRestartEnabled();
+        const newState = !currentState;
+        
+        setAutoRestartEnabled(newState);
+        
+        vscode.window.showInformationMessage(
+            `AI Bridge auto-restart is now ${newState ? 'enabled' : 'disabled'}`
+        );
+    });
+
+    // 添加到命令列表
+    context.subscriptions.push(toggleAutoRestartCommand);
 }
 
 module.exports = {

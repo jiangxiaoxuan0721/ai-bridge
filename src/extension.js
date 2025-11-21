@@ -22,6 +22,16 @@ function activate(context) {
             setTimeout(() => {
                 sendInitialState();
             }, 500);
+        } else {
+            // 如果启动失败，显示提示，允许用户手动启动
+            vscode.window.showInformationMessage(
+                'AI Bridge could not start automatically. You can start it manually.',
+                'Start Server'
+            ).then(selection => {
+                if (selection === 'Start Server') {
+                    vscode.commands.executeCommand('ai-bridge.startServer');
+                }
+            });
         }
     });
 
@@ -53,7 +63,8 @@ Active Editor: ${vscode.window.activeTextEditor ? vscode.window.activeTextEditor
 
 // this method is called when your extension is deactivated
 function deactivate() {
-    stopSingletonServer();
+    // 标记为手动停止，避免自动重启
+    stopSingletonServer(true, null);
 }
 
 module.exports = {

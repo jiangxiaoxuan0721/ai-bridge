@@ -2,11 +2,11 @@
   "name": "ai-bridge",
   "displayName": "ai-bridge",
   "description": "by simbot teams, ai-bridge is a vscode extension that provides a bridge to ai-bridge, ai-bridge is a powerful ai assistant that helps you with code generation, code completion, code explanation, and more.",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "simbot-wuxi",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/ai-bridge"
+    "url": "https://github.com/jiangxiaoxuan0721/ai-bridge"
   },
   "engines": {
     "vscode": "^1.98.1"
@@ -51,6 +51,14 @@
       {
         "command": "ai-bridge.showServerInfo",
         "title": "AI Bridge: Show Server Info"
+      },
+      {
+        "command": "ai-bridge.startServer",
+        "title": "AI Bridge: Start WebSocket Server"
+      },
+      {
+        "command": "ai-bridge.toggleAutoRestart",
+        "title": "AI Bridge: Toggle Auto Restart"
       }
     ],
     "menus": {
@@ -71,6 +79,10 @@
         {
           "command": "ai-bridge.toggleAutoMonitoring",
           "group": "aiBridge@4"
+        },
+        {
+          "command": "ai-bridge.startServer",
+          "group": "aiBridge@5"
         }
       ],
       "explorer/context": [

@@ -84,6 +84,9 @@ async function connectToSingleton(context) {
             ws.on('open', () => {
                 console.log(`Instance ${process.pid} connected to existing AI Bridge singleton server`);
                 
+                // 保存当前客户端连接
+                currentClientConnection = ws;
+                
                 ws.send(JSON.stringify({
                     type: 'extension_join',
                     data: {
@@ -153,6 +156,11 @@ async function connectToSingleton(context) {
                 ws.on('close', () => {
                     console.log(`Instance ${process.pid}: Disconnected from singleton server`);
                     
+                    // 清理客户端连接
+                    if (currentClientConnection === ws) {
+                        currentClientConnection = null;
+                    }
+                    
                     // 停止客户端心跳
                     if (clientHeartbeatInterval) {
                         clearInterval(clientHeartbeatInterval);
@@ -221,10 +229,25 @@ function handleSingletonMessage(message) {
     if (message.type === 'current_editor_state') {
         currentEditorState = message.data;
         console.log('Received current editor state from singleton');
+        
+        // 更新本地编辑器状态
+        const vscode = require('vscode');
+        if (vscode.window.activeTextEditor && 
+            vscode.window.activeTextEditor.document.fileName !== currentEditorState.fileName) {
+            // 如果当前文件与接收到的状态不同，不更新光标位置
+            return;
+        }
+        
         return;
     }
     
-    // 对于其他类型的消息，只记录日志，不需要转发
+    // 处理监控状态变化
+    if (message.type === 'monitoringStatusChanged') {
+        console.log('Monitoring status changed:', message.data.enabled);
+        return;
+    }
+    
+    // 对于其他类型的编辑器状态消息，不需要特殊处理
     // 服务器已经负责转发所有消息给所有客户端
     console.log('Received from singleton:', message.type);
 }
@@ -335,12 +358,17 @@ async function becomeSingleton(context) {
                     
                     allClients.forEach(client => {
                         if (client !== ws && client.readyState === webSocket.OPEN) {
-                            client.send(messageStr);
-                            forwardedCount++;
+                            try {
+                                client.send(messageStr);
+                                forwardedCount++;
+                                console.log(`Forwarded message type ${message.type} to client`);
+                            } catch (error) {
+                                console.error('Error forwarding message to client:', error);
+                            }
                         }
                     });
                     
-                    console.log(`Forwarded message to ${forwardedCount} clients`);
+                    console.log(`Forwarded message type ${message.type} to ${forwardedCount} clients`);
                     
                     // 如果是编辑器状态消息，更新当前状态
                     if (isEditorStateMessage(message.type)) {
@@ -585,6 +613,9 @@ function stopSingletonServer() {
     currentEditorState = null;
 }
 
+// 存储当前WebSocket连接，用于客户端发送消息
+let currentClientConnection = null;
+
 /**
  * 向所有客户端广播消息
  * @param {Object} message 要广播的消息对象
@@ -593,6 +624,23 @@ function broadcastToAllClients(message) {
     const messageStr = JSON.stringify(message);
     console.log('Broadcasting message:', message.type, 'with data:', JSON.stringify(message.data));
     
+    // 如果当前实例是客户端，发送消息到服务器
+    if (!isSingletonRunning || serverInstance !== process.pid) {
+        if (currentClientConnection && currentClientConnection.readyState === webSocket.OPEN) {
+            try {
+                currentClientConnection.send(messageStr);
+                console.log('Message sent to server from client');
+                return;
+            } catch (error) {
+                console.error('Error sending message to server:', error);
+            }
+        } else {
+            console.warn('No active client connection to send message');
+        }
+        return;
+    }
+    
+    // 如果当前实例是服务器，广播到所有客户端
     let sentCount = 0;
     allClients.forEach(client => {
         if (client.readyState === webSocket.OPEN) {
